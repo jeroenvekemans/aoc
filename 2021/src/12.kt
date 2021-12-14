@@ -1,7 +1,7 @@
 import java.io.File
 
 fun main() {
-    val lines: List<Line> = File("src/12.txt").readLines().map {
+    val lines: List<Line> = File("2021/src/12.txt").readLines().map {
         val match = """([a-zA-z]+)-([a-zA-z]+)""".toRegex().find(it)
         val (begin, destination) = match!!.destructured
         Line(begin, destination)

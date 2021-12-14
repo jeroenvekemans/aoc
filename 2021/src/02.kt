@@ -2,7 +2,7 @@ import java.io.File
 import java.lang.Integer.*
 
 fun main() {
-    val commands: List<String> = File("src/02.txt").readLines()
+    val commands: List<String> = File("2021/src/02.txt").readLines()
 
     val result = commands
         .fold(Pair(0, 0)) { acc, cmd ->

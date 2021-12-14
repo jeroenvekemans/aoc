@@ -1,7 +1,7 @@
 import java.io.File
 
 fun main() {
-    val data: List<String> = File("src/04.txt").readLines()
+    val data: List<String> = File("2021/src/04.txt").readLines()
 
     val numbers = data[0].split(",").map { Integer.valueOf(it) }
 

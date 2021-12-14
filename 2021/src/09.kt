@@ -1,7 +1,7 @@
 import java.io.File
 
 fun main() {
-    val rows: List<String> = File("src/09.txt").readLines()
+    val rows: List<String> = File("2021/src/09.txt").readLines()
 
     val board = rows.map { it.toCharArray().map { Integer.valueOf(it.toString()) }.toTypedArray() }.toTypedArray()
 

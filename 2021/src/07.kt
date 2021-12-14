@@ -3,7 +3,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 fun main() {
-    val positions: List<String> = File("src/07.txt").readLines()
+    val positions: List<String> = File("2021/src/07.txt").readLines()
     val posses = positions[0].split(",").map { Integer.valueOf(it) }
 
     println(DaySeven.solve(posses))

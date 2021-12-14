@@ -2,7 +2,7 @@ import java.io.File
 import java.lang.Integer.valueOf
 
 fun main() {
-    val measurements: List<Int> = File("src/01.txt").readLines().map { valueOf(it) }
+    val measurements: List<Int> = File("2021/src/01.txt").readLines().map { valueOf(it) }
 
     val res = measurements
         .zipWithNext()

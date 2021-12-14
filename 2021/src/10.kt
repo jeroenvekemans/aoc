@@ -2,7 +2,7 @@ import java.io.File
 import java.util.*
 
 fun main() {
-    val linesOfCode: List<String> = File("src/10.txt").readLines()
+    val linesOfCode: List<String> = File("2021/src/10.txt").readLines()
 
     println(DayTen.solve(linesOfCode))
     println(DayTen.solveDelta(linesOfCode))

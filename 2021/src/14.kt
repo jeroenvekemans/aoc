@@ -3,7 +3,7 @@ import kotlin.math.ceil
 import kotlin.math.max
 
 fun main() {
-    val text = File("src/14.txt").readLines()
+    val text = File("2021/src/14.txt").readLines()
 
     val template = text.first()
 

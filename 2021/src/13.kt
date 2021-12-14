@@ -1,7 +1,7 @@
 import java.io.File
 
 fun main() {
-    val text = File("src/13.txt").readLines()
+    val text = File("2021/src/13.txt").readLines()
 
     val dots: List<Dot> = text
         .filter { !it.startsWith("fold along") }

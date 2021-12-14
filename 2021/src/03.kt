@@ -1,7 +1,7 @@
 import java.io.File
 
 fun main() {
-    val report: List<String> = File("src/03.txt").readLines()
+    val report: List<String> = File("2021/src/03.txt").readLines()
 
     println(DayThree().solve(report))
     println(DayThreeDelta().solve(report))

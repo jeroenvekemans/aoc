@@ -2,7 +2,7 @@ import java.io.File
 import kotlin.math.abs
 
 fun main() {
-    val rows: List<String> = File("src/11.txt").readLines()
+    val rows: List<String> = File("2021/src/11.txt").readLines()
     val octopuses = rows.map { r -> r.toCharArray().map { Integer.valueOf(it.toString()) } }
 
     println(DayEleven.solve(octopuses))

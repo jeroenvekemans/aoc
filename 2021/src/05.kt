@@ -5,7 +5,7 @@ import kotlin.math.min
 data class Coordinate(val x: Int, val y: Int)
 
 fun main() {
-    val lines: List<String> = File("src/05.txt").readLines()
+    val lines: List<String> = File("2021/src/05.txt").readLines()
 
     val lineEnds =
         lines

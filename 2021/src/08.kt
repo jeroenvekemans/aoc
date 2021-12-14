@@ -3,7 +3,7 @@ import java.io.File
 data class Entry(val input: List<String>, val output: List<String>)
 
 fun main() {
-    val signals: List<Entry> = File("src/08.txt").readLines()
+    val signals: List<Entry> = File("2021/src/08.txt").readLines()
         .map { entry ->
             Entry(
                 entry.substringBefore('|').split(" ").filter { it.isNotEmpty() },
