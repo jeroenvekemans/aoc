@@ -17,7 +17,9 @@ fun main() {
         }
     }
 
+    val start = System.currentTimeMillis()
     println(DayFifteen.solve(big))
+    println("duration " + System.currentTimeMillis().minus(start))
 }
 
 data class Spot(val row: Int, val column: Int) {
