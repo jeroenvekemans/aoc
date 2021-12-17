@@ -1,12 +1,7 @@
 import kotlin.math.max
 
 fun main() {
-    val input = "target area: x=240..292, y=-90..-57"
-    val match = """target area: x=(-?\d+)\.\.(-?\d+), y=(-?\d+)\.\.(-?\d+)""".toRegex().find(input)
-    val (x1, x2, y1, y2) = match!!.destructured
-
-    val targetArea =
-        DaySeventeen.Area((Integer.valueOf(x1)..Integer.valueOf(x2)), Integer.valueOf(y1)..Integer.valueOf(y2))
+    val targetArea = DaySeventeen.Area((240..292), -90..-57)
 
     println(DaySeventeen.solve(targetArea))
     println(DaySeventeen.solveDelta(targetArea))
