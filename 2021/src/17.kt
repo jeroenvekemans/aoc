@@ -41,7 +41,7 @@ object DaySeventeen {
 
     fun solve(targetArea: Area): Int {
         val maxY = (1..100).flatMap { xVelocity ->
-            (-100..100).map { yVelocity ->
+            (1..100).map { yVelocity ->
                 advance(Position(0, 0), Velocity(xVelocity, yVelocity), targetArea, 0)
             }
         }.filter { it.first }.maxOf { it.second }
