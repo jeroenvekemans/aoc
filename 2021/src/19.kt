@@ -30,16 +30,6 @@ data class Scanner(val scanner: String, val beacons: List<Beacon>) {
         return Scanner(scanner, beacons.map { it.distance(firstMatch.key) })
     }
 
-    fun distance(otherScanner: Scanner): Int {
-        val distance = distanceMatchesBiggerThanTwelve(otherScanner).entries
-
-        if (distance.isEmpty()) {
-            println(this.scanner + " - " + otherScanner.scanner)
-        }
-
-        return 0
-    }
-
 }
 
 data class Origin(val x: Int, val y: Int, val z: Int) {
