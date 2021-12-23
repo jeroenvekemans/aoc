@@ -1,14 +1,13 @@
 import java.io.File
-import java.lang.RuntimeException
 import kotlin.math.max
 import kotlin.math.min
 
 data class Cuboid(val x: IntRange, val y: IntRange, val z: IntRange) {
     private fun overlapping(range: IntRange, otherRange: IntRange): Boolean {
-        return range.first in otherRange || range.last in otherRange
+        return range.first in otherRange || range.last in otherRange || otherRange.first in range || otherRange.last in range
     }
 
-    fun overlaps(otherCuboid: Cuboid): Boolean {
+    private fun overlaps(otherCuboid: Cuboid): Boolean {
         return overlapping(x, otherCuboid.x) && overlapping(y, otherCuboid.y) && overlapping(z, otherCuboid.z)
     }
 
@@ -22,7 +21,7 @@ data class Cuboid(val x: IntRange, val y: IntRange, val z: IntRange) {
 
     fun intersection(otherCuboid: Cuboid): Cuboid {
         if (!this.overlaps(otherCuboid)) {
-            throw RuntimeException("fail")
+            Cuboid((0..0), (0..0), (0..0))
         }
 
         return Cuboid(
@@ -64,7 +63,7 @@ fun main() {
 object DayTwentyTwo {
 
     fun solve(steps: List<RebootStep>): Long {
-        val stepsToConsider = steps.take(11).filter { it.cuboid.enclosedBy(Cuboid(-50..50, -50..50, -50..50)) }
+        val stepsToConsider = steps.filter { it.cuboid.enclosedBy(Cuboid(-50..50, -50..50, -50..50)) }
         val initial = stepsToConsider.first()
 
         val naiveResult =
@@ -78,45 +77,23 @@ object DayTwentyTwo {
 
         println("naive result " + naiveResult.size)
 
-        val start = stepsToConsider[0].cuboid
-
-        return solve(stepsToConsider.drop(1), start.size(), listOf(start))
+        return solve(stepsToConsider.reversed(), Cuboid(-50..50, -50..50, -50..50))
     }
 
-    private fun amountOfUniqueCubes(cuboids: Set<Cuboid>): Long {
-        // TODO WAY TOO SLOW
-        return cuboids.flatMap { it.cubes() }.toSet().size.toLong()
-    }
-
-    private fun solve(steps: List<RebootStep>, cubesOnAcc: Long, cuboids: List<Cuboid>): Long {
-        println("acc $cubesOnAcc")
-
-        if (steps.isEmpty()) {
-            return cubesOnAcc
+    private fun solve(steps: List<RebootStep>, cuboid: Cuboid): Long {
+        if (steps.isEmpty() || cuboid.size() == 0L) {
+            return 0L
         }
 
-        val next = steps.first()
+        val step = steps.first()
 
-        val intersections = cuboids.filter { it.overlaps(next.cuboid) }.map { it.intersection(next.cuboid) }.toSet()
-        val cubesInIntersections = amountOfUniqueCubes(intersections)
+        val intersection = cuboid.intersection(step.cuboid)
 
-        return if (next.on) {
-            println("turning on " + cubesInIntersections + " cubes, based on intersections " + intersections.size + " and size of cuboid " + next.cuboid.size())
+        val actives = solve(steps.drop(1), cuboid)
+        val activesInIntersection = solve(steps.drop(1), intersection)
+        val activeOutsideIntersection = actives - activesInIntersection
 
-            solve(
-                steps.drop(1),
-                cubesOnAcc + next.cuboid.size() - cubesInIntersections,
-                cuboids + listOf(next.cuboid),
-            )
-        } else {
-            println("blacking out " + cubesInIntersections + " cubes, based on intersections " + intersections.size)
-
-            return solve(
-                steps.drop(1),
-                cubesOnAcc - cubesInIntersections,
-                cuboids
-            )
-        }
+        return if (step.on) activeOutsideIntersection + intersection.size() else activeOutsideIntersection
     }
 
 }
