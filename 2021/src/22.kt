@@ -77,7 +77,8 @@ object DayTwentyTwo {
 
         println("naive result " + naiveResult.size)
 
-        return solve(stepsToConsider.reversed(), Cuboid(-50..50, -50..50, -50..50))
+        val range = (-200000..200000)
+        return solve(steps, Cuboid(range, range, range))
     }
 
     private fun solve(steps: List<RebootStep>, cuboid: Cuboid): Long {
@@ -85,15 +86,15 @@ object DayTwentyTwo {
             return 0L
         }
 
-        val step = steps.first()
+        val lastStep = steps.last()
+        val previousSteps = steps.dropLast(1)
 
-        val intersection = cuboid.intersection(step.cuboid)
-
-        val actives = solve(steps.drop(1), cuboid)
-        val activesInIntersection = solve(steps.drop(1), intersection)
+        val intersection = cuboid.intersection(lastStep.cuboid)
+        val actives = solve(previousSteps, cuboid)
+        val activesInIntersection = solve(previousSteps, intersection)
         val activeOutsideIntersection = actives - activesInIntersection
 
-        return if (step.on) activeOutsideIntersection + intersection.size() else activeOutsideIntersection
+        return if (lastStep.on) activeOutsideIntersection + intersection.size() else activeOutsideIntersection
     }
 
 }

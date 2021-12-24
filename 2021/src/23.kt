@@ -1,181 +1,165 @@
 import java.io.File
 import java.util.*
+import kotlin.math.min
 
 fun main() {
-    val state = File("2021/src/23.txt").readLines()
+    val raw = File("2021/src/23.txt").readLines()
 
-    println(DayTwentyThree.solve(state))
+    println(DayTwentyThree.solve(raw))
 }
 
 object DayTwentyThree {
+    enum class Species(val sign: Char, val stepCost: Int) {
+        Amber('A', 1), Bronze('B', 10), Copper('C', 100), Desert('D', 1000);
 
-    val priorityQueue = PriorityQueue<State> { s1, s2 ->
-        if (s1.todoScore() < s2.todoScore()) {
-            -1
-        } else if (s1.todoScore() > s2.todoScore()) {
-            1
-        } else {
-            s1.cost - s2.cost
+        companion object {
+            fun getBySign(sign: Char): Species {
+                return values().first { it.sign == sign }
+            }
+        }
+    }
+
+    data class Node(val number: Int)
+    data class Edge(val first: Int, val second: Int) {
+        fun contains(number: Int): Boolean {
+            return number == first || number == second
+        }
+
+        fun other(number: Int): Int {
+            return if (number == first) second else first
+        }
+    }
+
+    data class Animal(val id: Number, val color: Species)
+    data class Room(val color: Species, val node1: Int, val node2: Int)
+
+    class GameState(val cost: Int, val animals: Map<Animal, Int>) {
+
+        private val rooms = listOf(
+            Room(Species.Amber, 12, 13),
+            Room(Species.Bronze, 14, 15),
+            Room(Species.Copper, 16, 17),
+            Room(Species.Desert, 18, 19),
+        )
+
+        private fun isRoom(number: Int): Boolean {
+            return rooms.any { it.node1 == number || it.node2 == number }
+        }
+
+        private fun getRoom(number: Int): Room {
+            return rooms.first { it.node1 == number || it.node2 == number }
+        }
+
+        private val nodes = (1..19).map { Node(it) }
+        private val edges = nodes.take(11).zipWithNext().map {
+            Edge(it.first.number, it.second.number)
+        } + listOf(
+            Edge(3, 12), Edge(12, 13), Edge(5, 14), Edge(14, 15),
+            Edge(7, 16), Edge(16, 17), Edge(9, 18), Edge(18, 19),
+        )
+
+        private fun connectsWith(step: Int, acc: Map<Int, Int>): Map<Int, Int> {
+            val distance = step + 1
+
+            val nextNodes = acc.flatMap { node ->
+                edges.filter { it.contains(node.key) }.map { it.other(node.key) }
+            }.filter { !animals.containsValue(it) }.filter { !acc.containsKey(it) }.associateWith { distance }
+
+            if (nextNodes.isEmpty()) {
+                return acc
+            }
+
+            return connectsWith(distance, acc + nextNodes)
+        }
+
+        private val animalsAtDestinationInBackOfRoom = animals.filter {
+            rooms.any { r -> r.color == it.key.color && r.node2 == it.value }
+        }
+
+        val animalsAtDestination = animalsAtDestinationInBackOfRoom + animals.filterKeys { animalsAtDestinationInBackOfRoom.any { ga -> ga.key.color == it.color } }.filter {
+            rooms.any { r -> r.color == it.key.color && r.node1 == it.value }
+        }
+
+        fun isComplete(): Boolean {
+            return animalsAtDestination.size == 8
+        }
+
+        fun generateNextStates(): List<GameState> {
+            val animalsToMove = animals.filterKeys { !animalsAtDestination.containsKey(it) }
+
+            return animalsToMove.flatMap { a ->
+                val currentNode = a.value
+                val nextNodes = connectsWith(0, mapOf(Pair(currentNode, 0))).minus(currentNode)
+                    .filter { !animals.containsValue(it.key) }
+
+                nextNodes
+                    .filter { nextNode ->
+                        !listOf(3, 5, 7, 9).contains(nextNode.key)
+                    }
+                    .filter { nextNode ->
+                        isRoom(currentNode) || isRoom(nextNode.key)
+                    }
+                    .filter { nextNode ->
+                        val isRoom = isRoom(nextNode.key)
+
+                        if (isRoom) {
+                            val r = getRoom(nextNode.key)
+
+                            r.color == a.key.color && ((nextNode.key == r.node2) || animalsAtDestination.containsValue(r.node2))
+                        } else {
+                            true
+                        }
+                    }
+                    .map { nextNode ->
+                        GameState(
+                            cost + nextNode.value * a.key.color.stepCost,
+                            animals + mapOf(Pair(a.key, nextNode.key))
+                        )
+                    }
+            }
         }
     }
 
     fun solve(raw: List<String>): Int {
-        val state = parseState(raw)
+        val beginState = mapOf(
+            Pair(Animal(1, Species.getBySign(raw[2][3])), 12),
+            Pair(Animal(2, Species.getBySign(raw[3][3])), 13),
+            Pair(Animal(3, Species.getBySign(raw[2][5])), 14),
+            Pair(Animal(4, Species.getBySign(raw[3][5])), 15),
+            Pair(Animal(5, Species.getBySign(raw[2][7])), 16),
+            Pair(Animal(6, Species.getBySign(raw[3][7])), 17),
+            Pair(Animal(7, Species.getBySign(raw[2][9])), 18),
+            Pair(Animal(8, Species.getBySign(raw[3][9])), 19),
+        )
 
-        priorityQueue.add(state)
+        val initial = GameState(0, beginState)
 
-        while (priorityQueue.isNotEmpty()) {
-            val s = priorityQueue.poll()
-
-            println(s.lockedAmphipods)
-
-            if (s.isCompleted()) {
-                println("found something")
-                println(s)
-                break
+        val queue = PriorityQueue<GameState> { s1, s2 ->
+            if (s1.animalsAtDestination.size > s2.animalsAtDestination.size) {
+                -1
+            } else if (s1.animalsAtDestination.size < s2.animalsAtDestination.size) {
+                1
+            } else {
+                s1.cost - s2.cost
             }
+        }
+        queue.add(initial)
 
-            priorityQueue.addAll(state.possibleNextStates())
+        var minimum = Int.MAX_VALUE
+
+        while (queue.isNotEmpty()) {
+            val next = queue.poll()
+
+            if (next.isComplete()) {
+                minimum = min(minimum, next.cost)
+
+                println("local minimum $minimum")
+                queue.removeIf { it.cost >= minimum }
+            } else {
+                queue.addAll(next.generateNextStates())
+            }
         }
 
         return -1
     }
-
-    private fun parseState(state: List<String>): State {
-        val hallwayNodes = (1..11).map { identifier ->
-            Node(identifier.toString(), true, !listOf(3, 5, 7, 9).contains(identifier))
-        }
-
-        val destinationNode = listOf(
-            Node("12", true, true),
-            Node("13", true, true),
-            Node("14", true, true),
-            Node("15", true, true),
-            Node("16", true, true),
-            Node("17", true, true),
-            Node("18", true, true),
-            Node("19", true, true),
-        )
-
-        val hallwayConnections = hallwayNodes.zipWithNext().map { Edge(it.first.identifier, it.second.identifier) }
-
-        val destinationEdges = listOf(
-            Edge("3", "12"),
-            Edge("12", "13"),
-            Edge("5", "14"),
-            Edge("14", "15"),
-            Edge("7", "16"),
-            Edge("16", "17"),
-            Edge("9", "18"),
-            Edge("18", "19"),
-        )
-
-        val fish = listOf(
-            state[2][3],
-            state[2][5],
-            state[2][7],
-            state[2][9],
-            state[3][3],
-            state[3][5],
-            state[3][7],
-            state[3][9]
-        )
-
-        val pods = fish.zip(listOf("12", "14", "16", "18", "13", "15", "17", "19"))
-            .mapIndexed { index, p ->
-                Amphipod(
-                    p.first + index.toString(),
-                    AmphipodType.values().first { it.id == p.first },
-                    p.second
-                )
-            }
-
-        val nodes = (hallwayNodes + destinationNode).map { it.identifier to it }.toMap()
-
-        return State(0, nodes, hallwayConnections + destinationEdges, pods, emptySet())
-    }
-
-    data class State(
-        val cost: Int,
-        val nodes: Map<String, Node>,
-        val edges: List<Edge>,
-        val amphipods: List<Amphipod>,
-        val lockedAmphipods: Set<String>
-    ) {
-        fun todoScore(): Int {
-            return amphipods.filter { !lockedAmphipods.contains(it.identifier) }.sumOf { it.type.stepCost }
-        }
-
-        fun isCompleted(): Boolean {
-            val currentPositions = amphipods.groupBy({ it.type }, { nodes[it.position]!! })
-
-            return currentPositions.all {
-                edges.contains(Edge(it.value[0].identifier, it.value[1].identifier)) ||
-                        edges.contains(Edge(it.value[1].identifier, it.value[0].identifier))
-            }
-        }
-
-        private fun connectedWith(step: Int, acc: Map<Node, Int>): Map<Node, Int> {
-            val distance = step + 1
-
-            val connectedWith = acc.keys.flatMap { canConnectAlready ->
-                edges.filter { it.contains(canConnectAlready.identifier) }
-                    .map { it.other(canConnectAlready.identifier) }
-            }.map { nodes[it]!! }.filter { amphipods.none { a -> a.position == it.identifier } }
-
-            if (acc.keys.containsAll(connectedWith)) {
-                return acc
-            }
-
-            val newConnections = connectedWith.filter { !acc.keys.contains(it) }.associateWith { step }
-
-            return connectedWith(distance, acc + newConnections)
-        }
-
-        private fun canMoveTo(pod: Amphipod): Map<Node, Int> {
-            val currentPosition = nodes[pod.position]
-
-            return connectedWith(0, mapOf(Pair(currentPosition!!, 0)))
-                .filterKeys { it.identifier != pod.position }
-                .filterKeys { it.canStop }
-
-        }
-
-        fun possibleNextStates(): List<State> {
-            val allPossibleMoves = amphipods.filter { !lockedAmphipods.contains(it.identifier) }.flatMap { pod ->
-                canMoveTo(pod).map { newNode ->
-                    this.copy(
-                        cost = cost + newNode.value * pod.type.stepCost,
-                        amphipods = amphipods.filter { it.identifier != pod.identifier } + listOf(pod.copy(position = newNode.key.identifier)),
-                        lockedAmphipods = lockedAmphipods + if (newNode.key.destination) setOf(pod.identifier) else emptySet()
-                    )
-                }
-            }
-
-
-            return allPossibleMoves
-        }
-
-    }
-
-    data class Node(val identifier: String, val destination: Boolean, val canStop: Boolean)
-    data class Edge(val first: String, val second: String) {
-        fun contains(oneOf: String): Boolean {
-            return oneOf == first || oneOf == second
-        }
-
-        fun other(oneOf: String): String {
-            return if (oneOf == first) second else first
-        }
-    }
-
-    enum class AmphipodType(val id: Char, val stepCost: Int) {
-        Amber('A', 1),
-        Bronze('B', 10),
-        Copper('C', 100),
-        Desert('D', 1000)
-    }
-
-    data class Amphipod(val identifier: String, val type: AmphipodType, val position: String)
-
 }
