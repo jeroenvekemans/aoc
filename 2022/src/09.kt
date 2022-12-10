@@ -1,9 +1,12 @@
 import java.io.File
 import java.lang.Integer.valueOf
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 
 enum class Direction { U, R, D, L }
+
 data class Instruction(val direction: Direction, val steps: Int)
+
 data class Position(val row: Int, val col: Int) {
     fun advance(direction: Direction): Position {
         return when(direction) {
@@ -26,21 +29,48 @@ fun main() {
         .map { Instruction(Direction.valueOf(it[0].toString()), valueOf(it.substring(2)))  }
         .flatMap { ins -> (0 until ins.steps).map { ins.direction } }
 
-    val result = direction.fold(Pair(listOf(Position(0,0)), listOf(Position(0, 0)))) { acc, next ->
-        val heads = acc.first
-        val tails = acc.second
+    val startPositions = (0 until 10).map { listOf(Position(0, 0)) }
 
-        val head = heads[0].advance(next)
+    val result = direction.fold(startPositions) { acc, next ->
+        val leading = acc[0]
+        val head = leading[0].advance(next)
 
-        if (head.touches(tails[0])) {
-            acc.copy(first = listOf(head) + heads)
-        } else {
-            acc.copy(
-                first = listOf(head) + heads,
-                second = listOf(heads[0]) + tails
-            )
-        }
+        simulateStep(listOf(head) + leading, acc.drop(1))
     }
 
-    println(result.second.toSet().size)
+    val visited = result[9].toSet()
+    println(visited.size)
+}
+
+fun simulateStep(leadingPositions: List<Position>, remainingPositions: List<List<Position>>): List<List<Position>> {
+    if (remainingPositions.isEmpty()) {
+        return listOf(leadingPositions);
+    }
+
+    val nextPositionsToEvaluate = remainingPositions[0]
+
+    val head = leadingPositions[0]
+    val tail = nextPositionsToEvaluate[0]
+
+    return if (head.touches(tail)) {
+        listOf(leadingPositions) + simulateStep(remainingPositions.first(), remainingPositions.drop(1))
+    } else {
+        val diffRow = head.row - tail.row
+        val diffCol = head.col - tail.col
+
+        val newPositionForTail = if (diffRow.absoluteValue + diffCol.absoluteValue > 2) {
+            val newRow = if (diffRow < 0) -1 else 1
+            val newCol = if (diffCol < 0) -1 else 1
+
+            Position(tail.row + newRow, tail.col + newCol)
+        } else {
+            val newRow = if (diffRow == 0) 0 else if (diffRow < 0) -1 else 1
+            val newCol = if (diffCol == 0) 0 else if (diffCol < 0) -1 else 1
+
+            Position(tail.row + newRow, tail.col + newCol)
+        }
+
+        val remainderExtendedWithTouchingPosition = listOf(newPositionForTail) + remainingPositions.first()
+        listOf(leadingPositions) + simulateStep(remainderExtendedWithTouchingPosition, remainingPositions.drop(1))
+    }
 }
