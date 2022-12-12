@@ -1,4 +1,5 @@
 import java.io.File
+import kotlin.math.abs
 
 data class Location(val row: Int, val col: Int) {}
 
@@ -21,11 +22,15 @@ data class Square(val marker: Char, val location: Location) {
     }
 
     fun allowedToTravelTo(otherSquare: Square): Boolean {
-        return markerWeight(otherSquare.marker) - markerWeight(marker) <= 1
+        return markerWeight(marker) - markerWeight(otherSquare.marker) <= 1
     }
 
     private fun markerWeight(marker: Char): Int {
-        return if (marker == 'S') 'a'.code else if (marker == 'E') 'z'.code else marker.code
+        return when(marker) {
+            'S' -> 'a'.code
+            'E' -> 'z'.code
+            else -> marker.code
+        }
     }
 }
 
@@ -52,18 +57,19 @@ fun main() {
             }
         }
 
-    val startSquare = squares.find { it.isStart() }!!
-    val destinationSquare = squares.find { it.isDestination() }!!
+    val startSquare = squares.find { it.isDestination() }!!
+//    val destinationSquare = squares.find { it.isStart() }!!
 
-    val result = travel(mapOf(Pair(startSquare, Path(listOf(startSquare)))), destinationSquare, squares.associateBy { it.location })
+    val result = travel(mapOf(Pair(startSquare, Path(listOf(startSquare)))), squares.associateBy { it.location })
 
     println(result)
     println(result.squares.size - 1)
 }
 
-fun travel(paths: Map<Square, Path>, destinationSquare: Square, grid: Map<Location, Square>): Path {
-    if (paths.contains(destinationSquare )) {
-        return paths[destinationSquare]!!
+tailrec fun travel(paths: Map<Square, Path>, grid: Map<Location, Square>): Path {
+
+    if (paths.keys.any { p -> p.marker == 'a' || p.isStart() }) {
+        return paths[paths.keys.first { p -> p.marker == 'a' || p.isStart() }]!!
     }
 
     val newPaths = paths.values.flatMap { p ->
@@ -74,5 +80,5 @@ fun travel(paths: Map<Square, Path>, destinationSquare: Square, grid: Map<Locati
             .map { p.extend(it) }
     }.associateBy { it.head() }
 
-    return travel(newPaths, destinationSquare, grid)
+    return travel(newPaths, grid)
 }
