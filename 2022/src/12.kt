@@ -1,6 +1,7 @@
 import java.io.File
 
-data class Location(val row: Int, val col: Int)
+data class Location(val row: Int, val col: Int) {}
+
 data class Square(val marker: Char, val location: Location) {
     fun isStart(): Boolean {
         return marker == 'S'
@@ -20,18 +21,27 @@ data class Square(val marker: Char, val location: Location) {
     }
 
     fun allowedToTravelTo(otherSquare: Square): Boolean {
-        if (this.marker == 'S') {
-            return otherSquare.marker.code - 'a'.code <= 1
-        }
+        return markerWeight(otherSquare.marker) - markerWeight(marker) <= 1
+    }
 
-        if (otherSquare.marker == 'E') {
-            return 'z'.code - this.marker.code <= 1
-        }
-
-        return otherSquare.marker.code - marker.code <= 1
+    private fun markerWeight(marker: Char): Int {
+        return if (marker == 'S') 'a'.code else if (marker == 'E') 'z'.code else marker.code
     }
 }
 
+data class Path(val squares: List<Square>) {
+    fun head(): Square {
+        return squares[0]
+    }
+
+    fun contains(square: Square): Boolean {
+        return squares.contains(square)
+    }
+
+    fun extend(square: Square): Path {
+        return this.copy(squares = listOf(square) + this.squares)
+    }
+}
 
 fun main() {
     val squares: List<Square> = File("2022/src/12.txt")
@@ -45,42 +55,24 @@ fun main() {
     val startSquare = squares.find { it.isStart() }!!
     val destinationSquare = squares.find { it.isDestination() }!!
 
-    val result = travelTowardsDestination(listOf(startSquare), destinationSquare, squares.associateBy { it.location })
+    val result = travel(mapOf(Pair(startSquare, Path(listOf(startSquare)))), destinationSquare, squares.associateBy { it.location })
 
     println(result)
-
-    println(result.size)
-
-    println(result.reversed().map { it.marker }.joinToString(""))
+    println(result.squares.size - 1)
 }
 
-fun travelTowardsDestination(
-    path: List<Square>,
-    destinationSquare: Square,
-    squaresByLocation: Map<Location, Square>): List<Square> {
-
-    println("iteration with path length ${path.size}")
-
-    if (path.contains(destinationSquare)) {
-        return path
+fun travel(paths: Map<Square, Path>, destinationSquare: Square, grid: Map<Location, Square>): Path {
+    if (paths.contains(destinationSquare )) {
+        return paths[destinationSquare]!!
     }
 
-    val currentSquare = path.first()
+    val newPaths = paths.values.flatMap { p ->
+        p.head().adjacentLocations()
+            .filter { grid.contains(it) }
+            .map { grid[it]!! }
+            .filter { p.head().allowedToTravelTo(it) }
+            .map { p.extend(it) }
+    }.associateBy { it.head() }
 
-    val nextSquareOptions = currentSquare
-        .adjacentLocations()
-        .filter { squaresByLocation.contains(it) }
-        .map { squaresByLocation[it]!! }
-        .filter { currentSquare.allowedToTravelTo(it) }
-        .filter { !path.contains(it) }
-
-    if (nextSquareOptions.isEmpty()) {
-        return emptyList()
-    }
-
-    val recurse = nextSquareOptions
-        .map { travelTowardsDestination(listOf(it) + path, destinationSquare, squaresByLocation) }
-        .filter { it.isNotEmpty() }
-
-    return if (recurse.isEmpty()) emptyList() else recurse.sortedBy { it.size }.first()
+    return travel(newPaths, destinationSquare, grid)
 }
