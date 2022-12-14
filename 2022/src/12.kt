@@ -1,5 +1,4 @@
 import java.io.File
-import kotlin.math.abs
 
 data class Location(val row: Int, val col: Int) {}
 
@@ -58,7 +57,6 @@ fun main() {
         }
 
     val startSquare = squares.find { it.isDestination() }!!
-//    val destinationSquare = squares.find { it.isStart() }!!
 
     val result = travel(mapOf(Pair(startSquare, Path(listOf(startSquare)))), squares.associateBy { it.location })
 
@@ -67,7 +65,6 @@ fun main() {
 }
 
 tailrec fun travel(paths: Map<Square, Path>, grid: Map<Location, Square>): Path {
-
     if (paths.keys.any { p -> p.marker == 'a' || p.isStart() }) {
         return paths[paths.keys.first { p -> p.marker == 'a' || p.isStart() }]!!
     }
