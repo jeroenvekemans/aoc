@@ -67,8 +67,6 @@ fun main() {
 }
 
 tailrec fun dropSandUntilBottom(pointCloud: Set<Point>, bottom: Int, acc: Int): Int {
-    println("until bottom $acc")
-
     val source = Point(500, 0)
 
     val result = dropSand(pointCloud, source, bottom - 1)
