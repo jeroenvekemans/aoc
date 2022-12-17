@@ -1,17 +1,17 @@
 import java.io.File
 
-data class Cell(val x: Int, val y: Int)
+data class Cell(val x: Long, val y: Long)
 data class RockShape(val cells: Set<Cell>) {
-    fun atChamberHeight(height: Int): RockShape {
+    fun atStartingPosition(height: Long): RockShape {
         return RockShape(cells.map { it.copy(y = it.y + height) }.toSet())
     }
 
-    fun highestPoint(): Int {
-        return cells.maxOf{ it.y }
+    fun highestPoint(): Long {
+        return cells.maxOf { it.y }
     }
 
     fun moveDown(): RockShape {
-        val potential = cells.map { it.copy(y = it.y - 1) }.toSet()
+        val potential = cells.map { it.copy(y = it.y - 1L) }.toSet()
 
         if (potential.all { it.y >= 0 }) {
             return RockShape(potential)
@@ -21,7 +21,7 @@ data class RockShape(val cells: Set<Cell>) {
     }
 
     fun pushLeftIfPossible(): RockShape {
-        val potential = cells.map { it.copy(x = it.x - 1) }.toSet()
+        val potential = cells.map { it.copy(x = it.x - 1L) }.toSet()
 
         if (potential.all { it.x >= 0 }) {
             return RockShape(potential)
@@ -31,7 +31,7 @@ data class RockShape(val cells: Set<Cell>) {
     }
 
     fun pushRightIfPossible(): RockShape {
-        val potential = cells.map { it.copy(x = it.x + 1) }.toSet()
+        val potential = cells.map { it.copy(x = it.x + 1L) }.toSet()
 
         if (potential.all { it.x <= 6 }) {
             return RockShape(potential)
@@ -40,6 +40,7 @@ data class RockShape(val cells: Set<Cell>) {
         return this
     }
 }
+
 
 fun main() {
     val jetSequence: String = File("2022/src/17.txt").readLines()[0]
@@ -50,28 +51,64 @@ fun main() {
     val vertical = RockShape(setOf(Cell(2, 0), Cell(2, 1), Cell(2, 2), Cell(2, 3)))
     val square = RockShape(setOf(Cell(2, 0), Cell(3, 0), Cell(2, 1), Cell(3, 1)))
 
-    val rocks = (0..450).flatMap { listOf(horizontal, plus, corner, vertical, square) }.take(2022)
+    val rocks = listOf(horizontal, plus, corner, vertical, square)
 
-    val afterSinking = rocks.fold(Pair(emptyList<RockShape>(), jetSequence.repeat(1000))) { acc, next ->
-        val shapes = acc.first
+    var rockPointer = 0L
+    var sequencePointer = 0L
+    val shapes = mutableListOf<RockShape>()
+    var heightOfChamber = 3L
+    var extraHeight = 0L
 
-        val heightOfChamber = 3 + (if (shapes.isEmpty()) 0 else shapes.map { it.highestPoint() }.max() + 1)
+    val cache = mutableMapOf<Pair<Long, Long>, MutableList<Pair<Long, Long>>>()
 
-        val startsFalling = next.atChamberHeight(heightOfChamber)
-        val result = rockToTheBottom(startsFalling, shapes.flatMap { it.cells }.toSet(), acc.second)
+    val totalRocks = 1_000_000_000_000L
+//    val totalRocks = 2022L
 
-        Pair(shapes + setOf(result.first), result.second)
+    while (rockPointer < totalRocks) {
+        val cacheKey = Pair(rockPointer % rocks.size, sequencePointer % jetSequence.length)
+        val history = cache.getOrDefault(cacheKey, mutableListOf())
+
+        if (history.size >= 3) {
+            val heightDiff = history[2].second - history[1].second
+            val rockPointerDiff = history[2].first - history[1].first
+            val jump = (totalRocks - rockPointer) / rockPointerDiff
+
+            println("height pointer diff $heightDiff")
+            println("rock pointer diff $rockPointerDiff")
+            println("jump $jump")
+
+
+            extraHeight += jump * heightDiff
+            rockPointer += jump * rockPointerDiff
+
+        }
+
+        val next = rocks[(rockPointer++ % rocks.size).toInt()]
+
+        val startsFalling = next.atStartingPosition(heightOfChamber)
+
+        val (bottomRock, seq) = rockToTheBottom(startsFalling, shapes.flatMap { it.cells }.toSet(), jetSequence, sequencePointer)
+        sequencePointer = seq
+        shapes.add(bottomRock)
+        if (bottomRock.highestPoint() + 4 > heightOfChamber) {
+            heightOfChamber = (bottomRock.highestPoint() + 4)
+        }
+
+        if (history.size < 3) {
+            history.add(Pair(rockPointer, heightOfChamber))
+        }
+        cache[cacheKey] = history
     }
 
-    println(afterSinking.first.maxByOrNull { it.highestPoint() }!!)
-
-    println("first " + (afterSinking.first.maxByOrNull { it.highestPoint() }!!.highestPoint() + 1))
-
-    printAllRocks(afterSinking.first.toSet())
+    val computedHeight = shapes.maxByOrNull { it.highestPoint() }!!.highestPoint() + 1
+    println("computed height $computedHeight")
+    println("extra $extraHeight")
+    println("first ${computedHeight + extraHeight}")
 }
 
-fun rockToTheBottom(rockShape: RockShape, occupied: Set<Cell>, jetSequence: String): Pair<RockShape,String> {
-    val jet = jetSequence[0]
+
+fun rockToTheBottom(rockShape: RockShape, occupied: Set<Cell>, jetSequence: String, jetPointer: Long): Pair<RockShape, Long> {
+    val jet = jetSequence[(jetPointer % jetSequence.length).toInt()]
 
     val jetEffectPotentially = if (jet == '>') {
         rockShape.pushRightIfPossible()
@@ -84,22 +121,8 @@ fun rockToTheBottom(rockShape: RockShape, occupied: Set<Cell>, jetSequence: Stri
     val downEffect = if (occupied.none { downEffectPotentially.cells.contains(it) }) downEffectPotentially else jetEffect
 
     return if (downEffect == jetEffect) {
-        Pair(downEffect, jetSequence.drop(1))
+        Pair(downEffect, jetPointer + 1)
     } else {
-        rockToTheBottom(downEffect, occupied, jetSequence.drop(1))
-    }
-}
-
-fun printAllRocks(rocks: Set<RockShape>) {
-    val cells = rocks.flatMap { it.cells }
-
-    (20 downTo 0).forEach { y ->
-        (0 until 7).forEach { x ->
-            if (cells.contains(Cell(x, y))) {
-                print("#")
-            } else
-                print(".")
-        }
-        println()
+        rockToTheBottom(downEffect, occupied, jetSequence, jetPointer + 1)
     }
 }
