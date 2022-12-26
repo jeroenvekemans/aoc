@@ -20,54 +20,54 @@ sealed class ComparisonExpression {
             val simplifiedOp1 = op1.simplify()
             val simplifiedOp2 = op2.simplify()
 
-//            val reduction =
-//                if (simplifiedOp1 is Division && simplifiedOp2 is Scalar) {
-//                    if (simplifiedOp1.op1 is Scalar) {
-//                        Equals(
-//                            simplifiedOp1.op2,
-//                            Multiplication(simplifiedOp1.op1, simplifiedOp2).simplify()
-//                        ).simplify()
-//                    } else if (simplifiedOp1.op2 is Scalar) {
-//                        Equals(
-//                            simplifiedOp1.op1,
-//                            Multiplication(simplifiedOp1.op2, simplifiedOp2).simplify()
-//                        ).simplify()
-//                    } else {
-//                        Equals(simplifiedOp1, simplifiedOp2)
-//                    }
-//                } else if (simplifiedOp1 is Addition && simplifiedOp2 is Scalar) {
-//                    if (simplifiedOp1.op1 is Scalar) {
-//                        Equals(simplifiedOp1.op2, Subtraction(simplifiedOp2, simplifiedOp1.op1).simplify()).simplify()
-//                    } else if (simplifiedOp1.op2 is Scalar) {
-//                        Equals(simplifiedOp1.op1, Subtraction(simplifiedOp2, simplifiedOp1.op2).simplify()).simplify()
-//                    } else {
-//                        Equals(simplifiedOp1, simplifiedOp2)
-//                    }
-//                } else if (simplifiedOp1 is Multiplication && simplifiedOp2 is Scalar) {
-//                    if (simplifiedOp1.op1 is Scalar) {
-//                        Equals(simplifiedOp1.op2, Division(simplifiedOp2, simplifiedOp1.op1).simplify()).simplify()
-//                    } else if (simplifiedOp1.op2 is Scalar) {
-//                        Equals(simplifiedOp1.op1, Division(simplifiedOp2, simplifiedOp1.op2).simplify()).simplify()
-//                    } else {
-//                        Equals(simplifiedOp1, simplifiedOp2)
-//                    }
-//                } else if (simplifiedOp1 is Subtraction && simplifiedOp2 is Scalar) {
-//                    if (simplifiedOp1.op1 is Scalar) {
-//                        Equals(simplifiedOp1.op2, Addition(simplifiedOp2, simplifiedOp1.op1).simplify()).simplify()
-//                    } else if (simplifiedOp1.op2 is Scalar) {
-//                        Equals(simplifiedOp1.op1, Addition(simplifiedOp2, simplifiedOp1.op2).simplify()).simplify()
-//                    } else {
-//                        Equals(simplifiedOp1, simplifiedOp2)
-//                    }
-//                } else {
-//                    Equals(simplifiedOp1, simplifiedOp2)
-//                }
-//
-//            return if (reduction != Equals(simplifiedOp1, simplifiedOp2)) {
-//                reduction
-//            } else {
-                return Equals(simplifiedOp1, simplifiedOp2)
-//            }
+            val reduction = reduce(simplifiedOp1, simplifiedOp2)
+            val reduction2 = reduce(simplifiedOp2, simplifiedOp1)
+
+            return if (reduction != Equals(simplifiedOp1, simplifiedOp2)) {
+                reduction
+            } else if (reduction2 != Equals(simplifiedOp1, simplifiedOp2))  {
+                reduction2
+            } else {
+                Equals(simplifiedOp1, simplifiedOp2)
+            }
+        }
+
+        private fun reduce(
+            simplifiedOp1: ComparisonExpression,
+            simplifiedOp2: ComparisonExpression
+        ) = if (simplifiedOp1 is Division && simplifiedOp2 is Scalar) {
+            if (simplifiedOp1.op2 is Scalar) {
+                Equals(
+                    simplifiedOp1.op1,
+                    Multiplication(simplifiedOp1.op2, simplifiedOp2).simplify()
+                ).simplify()
+            } else {
+                Equals(simplifiedOp1, simplifiedOp2)
+            }
+        } else if (simplifiedOp1 is Addition && simplifiedOp2 is Scalar) {
+            if (simplifiedOp1.op1 is Scalar) {
+                Equals(simplifiedOp1.op2, Subtraction(simplifiedOp2, simplifiedOp1.op1).simplify()).simplify()
+            } else if (simplifiedOp1.op2 is Scalar) {
+                Equals(simplifiedOp1.op1, Subtraction(simplifiedOp2, simplifiedOp1.op2).simplify()).simplify()
+            } else {
+                Equals(simplifiedOp1, simplifiedOp2)
+            }
+        } else if (simplifiedOp1 is Multiplication && simplifiedOp2 is Scalar) {
+            if (simplifiedOp1.op1 is Scalar) {
+                Equals(simplifiedOp1.op2, Division(simplifiedOp2, simplifiedOp1.op1).simplify()).simplify()
+            } else if (simplifiedOp1.op2 is Scalar) {
+                Equals(simplifiedOp1.op1, Division(simplifiedOp2, simplifiedOp1.op2).simplify()).simplify()
+            } else {
+                Equals(simplifiedOp1, simplifiedOp2)
+            }
+        } else if (simplifiedOp1 is Subtraction && simplifiedOp2 is Scalar) {
+            if (simplifiedOp1.op2 is Scalar) {
+                Equals(simplifiedOp1.op1, Addition(simplifiedOp2, simplifiedOp1.op2).simplify()).simplify()
+            } else {
+                Equals(simplifiedOp1, simplifiedOp2)
+            }
+        } else {
+            Equals(simplifiedOp1, simplifiedOp2)
         }
 
         override fun toText(): String {
@@ -161,7 +161,7 @@ sealed class ComparisonExpression {
 }
 
 sealed class MonkeyJob {
-    abstract fun resolve(dictionary: Map<String, MonkeyJob>):Long
+    abstract fun resolve(dictionary: Map<String, MonkeyJob>): Long
     abstract fun formula(dictionary: Map<String, MonkeyJob>): ComparisonExpression
 
     data class EqualityJob(val operand1: String, val operand2: String) : MonkeyJob() {
@@ -281,5 +281,6 @@ fun main() {
     val result = monkeyJobs["root"]!!.formula(monkeyJobs)
 
     val res = result.simplify()
+    println(res)
     println(res.toText())
 }
